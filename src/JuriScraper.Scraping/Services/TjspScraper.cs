@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using JuriScraper.Domain.Entities;
 using JuriScraper.Domain.Interfaces;
 using PuppeteerSharp;
+using PuppeteerSharp.Input;
 
 namespace JuriScraper.Scraping.Services;
 
