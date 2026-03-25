@@ -1,0 +1,17 @@
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+.gemini/
+/tmp/
+*.db
+/artifacts/
+
+# Arquivos internos de desenvolvimento (não devem ir ao repositório público)
+DEVELOPMENT_LOG.md
+index.txt
