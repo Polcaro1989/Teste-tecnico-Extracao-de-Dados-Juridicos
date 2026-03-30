@@ -2,69 +2,33 @@
 
 > Projeto .NET 9 para coletar processos reais (TJ-SP e TRTs via JTe/PJe Mobile), persistir em SQL Server (Docker) e expor por API com Swagger.
 
-## Índice
-- [Stack & Pré-requisitos](#stack--pré-requisitos)
-- [1. Subir o SQL (Docker)](#1-subir-o-sql-docker)
-- [2. Build & Playwright](#2-build--playwright)
-- [3. Rodar o Coletor](#3-rodar-o-coletor)
-- [4. Rodar a API (Swagger)](#4-rodar-a-api-swagger)
-- [Processos padrão](#processos-padrão)
-- [Como funciona o scraping](#como-funciona-o-scraping)
-- [Dados gravados](#dados-gravados)
-- [Testes](#testes)
-- [Estado atual](#estado-atual)
-- [Extensões futuras](#extensões-futuras)
+## Passo a passo rápido (local)
+1) Subir o SQL (Docker):
+```powershell
+docker compose up -d
+```
+2) Build:
+```powershell
+dotnet build JuriScraper.sln
+```
+3) Playwright (Chromium) – necessário para TJ-SP:
+```powershell
+powershell -ExecutionPolicy Bypass -File src\JuriScraper.Collector\bin\Debug\net9.0\playwright.ps1 install chromium
+```
+4) Rodar o coletor:
+```powershell
+dotnet run --project src/JuriScraper.Collector
+```
+5) Rodar a API (Swagger em http://localhost:5136/swagger):
+```powershell
+dotnet run --project src/JuriScraper.Api
+```
 
 ## Stack & Pré-requisitos
 - .NET SDK 9
 - Docker Desktop (somente para o SQL Server)
 - PowerShell 7+ (ou Windows PowerShell)
-
 > Diretório do projeto: `Teste-tecnico-Extracao-de-Dados-Juridicos`
-
-## 1. Subir o SQL (Docker)
-Na raiz do projeto:
-```powershell
-docker compose up -d
-```
-Credenciais: host `localhost:1433`, user `sa`, senha `JuriScraper@2026!`, database `JuriScraperDb`.
-
-Reset opcional do banco:
-```powershell
-docker exec -i sqlserver_jurisec /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P JuriScraper@2026! -C -Q "ALTER DATABASE JuriScraperDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE JuriScraperDb; CREATE DATABASE JuriScraperDb;"
-```
-Ou zerar volume:
-```powershell
-docker compose down -v
-```
-
-## 2. Build & Playwright
-```powershell
-dotnet build JuriScraper.sln
-# instalar o Chromium do Playwright (necessário para TJ-SP)
-powershell -ExecutionPolicy Bypass -File src\JuriScraper.Collector\bin\Debug\net9.0\playwright.ps1 install chromium
-```
-
-## 3. Rodar o Coletor
-Configuração: `src/JuriScraper.Collector/appsettings.json`.
-
-Rodar a lista padrão:
-```powershell
-dotnet run --project src/JuriScraper.Collector
-```
-Rodar um CNJ específico:
-```powershell
-dotnet run --project src/JuriScraper.Collector -- 0020169-74.2026.5.04.0029
-```
-
-## 4. Rodar a API (Swagger)
-```powershell
-dotnet run --project src/JuriScraper.Api
-```
-- Swagger: `http://localhost:5136/swagger`
-- Endpoints:
-  - `GET /processos`
-  - `GET /processos/{numero}`
 
 ## Processos padrão
 - **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
