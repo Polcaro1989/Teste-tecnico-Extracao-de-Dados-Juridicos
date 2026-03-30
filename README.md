@@ -1,82 +1,93 @@
 ﻿# Teste Técnico – Extração de Dados Jurídicos
 
-Guia para subir, coletar e consumir os dados (TJ-SP e TRTs via JTe/PJe Mobile) em .NET 9 com SQL Server em Docker.
+> Projeto .NET 9 para coletar processos reais (TJ-SP e TRTs via JTe/PJe Mobile), persistir em SQL Server (Docker) e expor por API com Swagger.
 
-## 1. Stack e requisitos
+## Índice
+- [Stack & Pré-requisitos](#stack--pré-requisitos)
+- [Ambiente (Docker / SQL Server)](#ambiente-docker--sql-server)
+- [Build & Playwright](#build--playwright)
+- [Coletor](#coletor)
+- [API](#api)
+- [Processos padrão](#processos-padrão)
+- [Como funciona o scraping](#como-funciona-o-scraping)
+- [Dados gravados](#dados-gravados)
+- [Testes](#testes)
+- [Estado atual](#estado-atual)
+- [Extensões futuras](#extensões-futuras)
+
+## Stack & Pré-requisitos
 - .NET SDK 9
 - Docker Desktop (SQL Server)
 - PowerShell 7+ (ou Windows PowerShell)
 
-## 2. Infra: SQL Server (Docker)
+## Ambiente (Docker / SQL Server)
 Na raiz do projeto:
 ```powershell
 docker-compose up -d
 ```
-- Host: localhost, porta 1433
-- Usuário: `sa`
-- Senha: `JuriScraper@2026!`
-- Banco: `JuriScraperDb`
+Credenciais: host `localhost:1433`, user `sa`, senha `JuriScraper@2026!`, database `JuriScraperDb`.
 
-### (Opcional) Reset do banco
+Reset opcional do banco:
 ```powershell
 docker exec -i sqlserver_jurisec /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P JuriScraper@2026! -C -Q "ALTER DATABASE JuriScraperDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE JuriScraperDb; CREATE DATABASE JuriScraperDb;"
 ```
 
-## 3. Build e Playwright
+## Build & Playwright
 ```powershell
 dotnet build JuriScraper.sln
-# Playwright (se precisar rodar manualmente)
+# (se precisar manual) instalar o Chromium usado pelo Playwright
 powershell -ExecutionPolicy Bypass -File src\JuriScraper.Collector\bin\Debug\net9.0\playwright.ps1 install chromium
 ```
 
-## 4. Coletor
-Config de processos em `src/JuriScraper.Collector/appsettings.json`.
+## Coletor
+Arquivo de configuração: `src/JuriScraper.Collector/appsettings.json`.
 
-Rodar coleta completa:
+Rodar a lista inteira:
 ```powershell
 dotnet run --project src/JuriScraper.Collector
 ```
-Rodar apenas um CNJ:
+Rodar um CNJ específico:
 ```powershell
 dotnet run --project src/JuriScraper.Collector -- 0020169-74.2026.5.04.0029
 ```
 
-### Processos padrão (enunciado)
-- **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
-- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4), 0020170-59.2026.5.04.0029 (TRT4)
-
-## 5. API
+## API
 Subir a API:
 ```powershell
 dotnet run --project src/JuriScraper.Api
 ```
 - Swagger: `http://localhost:5136/swagger`
 - Endpoints principais:
-  - `GET /processos` – lista todos os processos coletados
-  - `GET /processos/{numero}` – detalhe por CNJ
+  - `GET /processos` — lista todos os coletados
+  - `GET /processos/{numero}` — detalhe por CNJ
 
-## 6. Como funciona o scraping
-- **TJ-SP (e-SAJ)**: Playwright headless, headers pt-BR, navegação humanizada, captura XHR de dados básicos e detalhes.
-- **TRTs (JTe/PJe Mobile)**: cliente HTTP com criptografia AES igual ao app, headers mobile, pré-chamada `consultaGenericaMobile` (parametrização) + `consultaProcesso`, fallback HttpClient/Playwright, base alternativa `https://jte.csjt.jus.br/mobileservices` para contornar instabilidades.
-- CAPTCHA: se houver desafio, a sessão é reiniciada; após tentativas falhas, o processo é marcado como bloqueado.
+## Processos padrão
+- **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
+- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4), 0020170-59.2026.5.04.0029 (TRT4)
 
-## 7. Dados gravados
+## Como funciona o scraping
+- **TJ-SP (e-SAJ)**: Playwright headless, headers pt-BR, navegação humanizada; captura de XHR de dados básicos e detalhes.
+- **TRTs (JTe/PJe Mobile)**: cliente HTTP com criptografia AES idêntica ao app; headers mobile; pré-chamada `consultaGenericaMobile` (parametrização) + `consultaProcesso`; fallback HttpClient/Playwright; base alternativa `https://jte.csjt.jus.br/mobileservices` para contornar instabilidades.
+- CAPTCHA: se o portal exigir desafio, a sessão é reiniciada; após tentativas falhas, o processo é marcado como bloqueado.
+
+## Dados gravados
 - Número, tribunal, classe, assunto, foro/órgão julgador
 - Data de distribuição
 - Partes (nome, polo, documento quando disponível)
 - Último andamento e data
 - Data da coleta
 
-## 8. Testes
+## Testes
 ```powershell
 dotnet test tests/JuriScraper.Tests/JuriScraper.Tests.csproj
 ```
 Cobertura atual: ScraperFactory (roteia TJ-SP vs. PJe Mobile).
 
-## 9. Estado atual (30/03/2026)
-- 10 processos do enunciado coletados (5 TJ-SP, 5 TRTs) e salvos em `Processos`.
-- TRT-4 ok com fallback HTTP + parametrização.
+## Estado atual (30/03/2026)
+- 10 processos do enunciado coletados e salvos (5 TJ-SP, 5 TRTs).
+- TRT-4 funcionando via fallback HTTP + parametrização.
+- Tabela `Processos` contém 10 registros após a coleta full.
 
-## 10. Extensões futuras
-- Mapear demais TRTs no `ScraperFactory` usando as urls de `https://jte.csjt.jus.br/api/tribunais-integrados`.
-- Expor POST de coleta sob demanda (CNJ -> ScraperFactory -> persistência) se solicitado.
+## Extensões futuras
+- Mapear demais TRTs no `ScraperFactory` usando as URLs de `https://jte.csjt.jus.br/api/tribunais-integrados`.
+- Expor POST de coleta sob demanda (CNJ -> ScraperFactory -> persistência), se requisitado.
