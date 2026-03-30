@@ -68,7 +68,7 @@ dotnet run --project src/JuriScraper.Api
 
 ## Processos padrão
 - **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
-- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4)
+- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4), 0020170-59.2026.5.04.0029 (TRT4)
 
 ## Como funciona o scraping
 - **TJ-SP (e-SAJ)**: Playwright headless, headers pt-BR, navegação humanizada; captura de XHR de dados básicos e detalhes.
@@ -89,9 +89,9 @@ dotnet test tests/JuriScraper.Tests/JuriScraper.Tests.csproj
 Cobertura atual: ScraperFactory (roteia TJ-SP vs. PJe Mobile).
 
 ## Estado atual (30/03/2026)
-- 9 processos coletados (5 TJ-SP, 4 TRTs) após limpeza + coleta padrão.
+- 10 processos coletados (5 TJ-SP, 5 TRTs) após limpeza + coleta padrão.
 - TRT-4 funcionando via fallback HTTP + parametrização.
-- Para incluir mais um processo (alvo: 10 no total), acrescente o CNJ na lista do `appsettings.json` e rode o coletor.
+- Para incluir novos processos, acrescente o CNJ no `appsettings.json` e rode o coletor.
 
 ## Extensões futuras
 - Mapear demais TRTs no `ScraperFactory` usando as URLs de `https://jte.csjt.jus.br/api/tribunais-integrados`.
