@@ -20,7 +20,7 @@
 - Docker Desktop (somente para o SQL Server)
 - PowerShell 7+ (ou Windows PowerShell)
 
-> Diretório do projeto: `Teste-tecnico-Extracao-de-Dados-Juridicos/Teste-tecnico-Extracao-de-Dados-Juridicos`
+> Diretório do projeto: `Teste-tecnico-Extracao-de-Dados-Juridicos`
 
 ## 1. Subir o SQL (Docker)
 Na raiz do projeto:
