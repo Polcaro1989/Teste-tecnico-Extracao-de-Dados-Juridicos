@@ -4,10 +4,10 @@
 
 ## Índice
 - [Stack & Pré-requisitos](#stack--pré-requisitos)
-- [Ambiente (Docker / SQL Server)](#ambiente-docker--sql-server)
-- [Build & Playwright](#build--playwright)
-- [Coletor](#coletor)
-- [API](#api)
+- [1. Subir o SQL (Docker)](#1-subir-o-sql-docker)
+- [2. Build & Playwright](#2-build--playwright)
+- [3. Rodar o Coletor](#3-rodar-o-coletor)
+- [4. Rodar a API (Swagger)](#4-rodar-a-api-swagger)
 - [Processos padrão](#processos-padrão)
 - [Como funciona o scraping](#como-funciona-o-scraping)
 - [Dados gravados](#dados-gravados)
@@ -17,13 +17,15 @@
 
 ## Stack & Pré-requisitos
 - .NET SDK 9
-- Docker Desktop (SQL Server)
+- Docker Desktop (somente para o SQL Server)
 - PowerShell 7+ (ou Windows PowerShell)
 
-## Ambiente (Docker / SQL Server)
+> Diretório do projeto: `Teste-tecnico-Extracao-de-Dados-Juridicos/Teste-tecnico-Extracao-de-Dados-Juridicos`
+
+## 1. Subir o SQL (Docker)
 Na raiz do projeto:
 ```powershell
-docker-compose up -d
+docker compose up -d
 ```
 Credenciais: host `localhost:1433`, user `sa`, senha `JuriScraper@2026!`, database `JuriScraperDb`.
 
@@ -31,18 +33,22 @@ Reset opcional do banco:
 ```powershell
 docker exec -i sqlserver_jurisec /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P JuriScraper@2026! -C -Q "ALTER DATABASE JuriScraperDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE JuriScraperDb; CREATE DATABASE JuriScraperDb;"
 ```
+Ou zerar volume:
+```powershell
+docker compose down -v
+```
 
-## Build & Playwright
+## 2. Build & Playwright
 ```powershell
 dotnet build JuriScraper.sln
-# (se precisar manual) instalar o Chromium usado pelo Playwright
+# instalar o Chromium do Playwright (necessário para TJ-SP)
 powershell -ExecutionPolicy Bypass -File src\JuriScraper.Collector\bin\Debug\net9.0\playwright.ps1 install chromium
 ```
 
-## Coletor
-Arquivo de configuração: `src/JuriScraper.Collector/appsettings.json`.
+## 3. Rodar o Coletor
+Configuração: `src/JuriScraper.Collector/appsettings.json`.
 
-Rodar a lista inteira:
+Rodar a lista padrão:
 ```powershell
 dotnet run --project src/JuriScraper.Collector
 ```
@@ -51,19 +57,18 @@ Rodar um CNJ específico:
 dotnet run --project src/JuriScraper.Collector -- 0020169-74.2026.5.04.0029
 ```
 
-## API
-Subir a API:
+## 4. Rodar a API (Swagger)
 ```powershell
 dotnet run --project src/JuriScraper.Api
 ```
 - Swagger: `http://localhost:5136/swagger`
-- Endpoints principais:
-  - `GET /processos` — lista todos os coletados
-  - `GET /processos/{numero}` — detalhe por CNJ
+- Endpoints:
+  - `GET /processos`
+  - `GET /processos/{numero}`
 
 ## Processos padrão
 - **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
-- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4), 0020170-59.2026.5.04.0029 (TRT4)
+- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4)
 
 ## Como funciona o scraping
 - **TJ-SP (e-SAJ)**: Playwright headless, headers pt-BR, navegação humanizada; captura de XHR de dados básicos e detalhes.
@@ -84,9 +89,9 @@ dotnet test tests/JuriScraper.Tests/JuriScraper.Tests.csproj
 Cobertura atual: ScraperFactory (roteia TJ-SP vs. PJe Mobile).
 
 ## Estado atual (30/03/2026)
-- 10 processos do enunciado coletados e salvos (5 TJ-SP, 5 TRTs).
+- 9 processos coletados (5 TJ-SP, 4 TRTs) após limpeza + coleta padrão.
 - TRT-4 funcionando via fallback HTTP + parametrização.
-- Tabela `Processos` contém 10 registros após a coleta full.
+- Para incluir mais um processo (alvo: 10 no total), acrescente o CNJ na lista do `appsettings.json` e rode o coletor.
 
 ## Extensões futuras
 - Mapear demais TRTs no `ScraperFactory` usando as URLs de `https://jte.csjt.jus.br/api/tribunais-integrados`.
