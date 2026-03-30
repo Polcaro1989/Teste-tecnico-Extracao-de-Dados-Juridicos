@@ -21,10 +21,10 @@ public class ScraperFactoryTests
     }
 
     [Theory]
-    [InlineData("0010406-20.2020.5.15.0114")] // TRT-15
-    [InlineData("1001395-69.2021.5.02.0461")] // TRT-2
-    [InlineData("0000579-38.2022.5.12.0003")] // TRT-12
-    [InlineData("0020121-65.2023.5.04.0301")] // TRT-4
+    [InlineData("0010263-82.2026.5.15.0052")] // TRT-15
+    [InlineData("1000320-88.2026.5.02.0083")] // TRT-2
+    [InlineData("0000234-11.2026.5.12.0034")] // TRT-12
+    [InlineData("0020169-74.2026.5.04.0029")] // TRT-4
     public void ObterScraperPorNumero_NumerosTrt_DeveRetornarPjeScraper(string numeroProcesso)
     {
         // Act
@@ -32,7 +32,7 @@ public class ScraperFactoryTests
 
         // Assert
         Assert.NotNull(scraper);
-        Assert.IsType<PjeScraper>(scraper);
+        Assert.IsType<PjeMobileScraper>(scraper);
     }
 
     [Fact]

@@ -1,73 +1,82 @@
-# Teste Técnico — Extração de Dados Jurídicos (Scraping & API) 🚀
+﻿# Teste Técnico – Extração de Dados Jurídicos
 
-Solução completa desenvolvida em **.NET 10** obedecendo estritamente os princípios de **Clean Architecture**, para extração (*Web Scraping*), armazenamento e consumo em massa de processos jurídicos do **e-SAJ (TJSP)** e **PJE (TRT-2, TRT-4, TRT-12, TRT-15)**.
+Guia para subir, coletar e consumir os dados (TJ-SP e TRTs via JTe/PJe Mobile) em .NET 9 com SQL Server em Docker.
 
-## 🏛️ Arquitetura do Projeto
+## 1. Stack e requisitos
+- .NET SDK 9
+- Docker Desktop (SQL Server)
+- PowerShell 7+ (ou Windows PowerShell)
 
-O projeto foi decomposto em 4 camadas físicas fortemente isoladas, garantindo testabilidade, manutenção e escalabilidade sem dor de cabeça:
-
-1. **`JuriScraper.Domain`**: O "Coração". Contém as Entidades (`Processo`, `ParteProcesso`) e as Interfaces (Contratos). **Regra número 1**: Zero dependências de tecnologia ou banco de dados.
-2. **`JuriScraper.Scraping`**: O "Motor". Gerencia automação de robôs invisíveis (*Headless Chrome*) através do **PuppeteerSharp** para acessar portais pesados (como PJE), preencher capchas invisíveis/formulários e quebrar as proteções da camada web dos Tribunais. Conta com a genial **`ScraperFactory`**, que lê um número do CNJ, identifica o tribunal e cospe o robô certo para o trabalho.
-3. **`JuriScraper.Infrastructure`**: O "Armazém". Implementa os contratos de armazenamento utilizando **Entity Framework Core 10** acoplado a um banco **SQL Server 2025**.
-4. **`JuriScraper.Api`**: A "Vitrine". Minimal APIs hiper performáticas que orquestram requisições da web, ativam scrapers ou devolvem dados em cache.
-
-## ⚙️ Tecnologias Utilizadas
-- **.NET 10 SDK**
-- **Microsoft SQL Server 2025** (via Docker Compose)
-- **Entity Framework Core 10** (EF Migrations)
-- **PuppeteerSharp** (Chromium Automations)
-- **Swagger / OpenAPI**
-
-## 🚀 Como Executar Localmente
-
-### Pré-requisitos
-- .NET 10 SDK instalado.
-- Docker Desktop rodando.
-
-### Passo 1: Subir o Banco de Dados
-A infraestrutura está pronta em contêineres:
+## 2. Infra: SQL Server (Docker)
+Na raiz do projeto:
 ```powershell
 docker-compose up -d
 ```
+- Host: localhost, porta 1433
+- Usuário: `sa`
+- Senha: `JuriScraper@2026!`
+- Banco: `JuriScraperDb`
 
-### Passo 2: Criar as Tabelas (Migrations)
-Execute a partir da raiz do repositório para gerar o Schema no SQL Server:
+### (Opcional) Reset do banco
 ```powershell
-dotnet ef database update --project src/JuriScraper.Infrastructure --startup-project src/JuriScraper.Api
+docker exec -i sqlserver_jurisec /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P JuriScraper@2026! -C -Q "ALTER DATABASE JuriScraperDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE JuriScraperDb; CREATE DATABASE JuriScraperDb;"
 ```
 
-### Passo 3: Rodar a API
+## 3. Build e Playwright
+```powershell
+dotnet build JuriScraper.sln
+# Playwright (se precisar rodar manualmente)
+powershell -ExecutionPolicy Bypass -File src\JuriScraper.Collector\bin\Debug\net9.0\playwright.ps1 install chromium
+```
+
+## 4. Coletor
+Config de processos em `src/JuriScraper.Collector/appsettings.json`.
+
+Rodar coleta completa:
+```powershell
+dotnet run --project src/JuriScraper.Collector
+```
+Rodar apenas um CNJ:
+```powershell
+dotnet run --project src/JuriScraper.Collector -- 0020169-74.2026.5.04.0029
+```
+
+### Processos padrão (enunciado)
+- **TJ-SP (cíveis)**: 1501983-25.2022.8.26.0022, 1501843-43.2019.8.26.0653, 1033404-26.2024.8.26.0053, 0603745-96.2008.8.26.0053, 0008626-06.2011.8.26.0072
+- **TRTs (PJe Mobile)**: 0010263-82.2026.5.15.0052 (TRT15), 1000320-88.2026.5.02.0083 (TRT2), 0000234-11.2026.5.12.0034 (TRT12), 0020169-74.2026.5.04.0029 (TRT4), 0020170-59.2026.5.04.0029 (TRT4)
+
+## 5. API
+Subir a API:
 ```powershell
 dotnet run --project src/JuriScraper.Api
 ```
+- Swagger: `http://localhost:5136/swagger`
+- Endpoints principais:
+  - `GET /processos` – lista todos os processos coletados
+  - `GET /processos/{numero}` – detalhe por CNJ
 
-Navegue para **[http://localhost:5136/swagger](http://localhost:5136/swagger)** para interagir com a API de forma visual!
+## 6. Como funciona o scraping
+- **TJ-SP (e-SAJ)**: Playwright headless, headers pt-BR, navegação humanizada, captura XHR de dados básicos e detalhes.
+- **TRTs (JTe/PJe Mobile)**: cliente HTTP com criptografia AES igual ao app, headers mobile, pré-chamada `consultaGenericaMobile` (parametrização) + `consultaProcesso`, fallback HttpClient/Playwright, base alternativa `https://jte.csjt.jus.br/mobileservices` para contornar instabilidades.
+- CAPTCHA: se houver desafio, a sessão é reiniciada; após tentativas falhas, o processo é marcado como bloqueado.
 
-## 🔗 Endpoints Principais
+## 7. Dados gravados
+- Número, tribunal, classe, assunto, foro/órgão julgador
+- Data de distribuição
+- Partes (nome, polo, documento quando disponível)
+- Último andamento e data
+- Data da coleta
 
-### 1. `GET /processos`
-Retorna todos os processos já raspados que estão cacheados no banco de dados.
-- **Navegador**: [http://localhost:5136/swagger](http://localhost:5136/swagger)
-- **Terminal (cURL)**:
-  ```powershell
-  curl -X GET "http://localhost:5136/processos" -H "accept: application/json"
-  ```
+## 8. Testes
+```powershell
+dotnet test tests/JuriScraper.Tests/JuriScraper.Tests.csproj
+```
+Cobertura atual: ScraperFactory (roteia TJ-SP vs. PJe Mobile).
 
-### 2. `GET /processos/{numero}`
-Busca um processo específico salvo no banco de dados. Substitua o `{numero}` pelo CNJ desejado.
-- **Navegador**: [http://localhost:5136/processos/1501983-25.2022.8.26.0022](http://localhost:5136/processos/1501983-25.2022.8.26.0022)
-- **Terminal (cURL)**:
-  ```powershell
-  curl -X GET "http://localhost:5136/processos/1501983-25.2022.8.26.0022" -H "accept: application/json"
-  ```
+## 9. Estado atual (30/03/2026)
+- 10 processos do enunciado coletados (5 TJ-SP, 5 TRTs) e salvos em `Processos`.
+- TRT-4 ok com fallback HTTP + parametrização.
 
-### 3. `POST /processos/coletar`
-**O verdadeiro motor do sistema.** Recebe um *array* de números CNJ. Ele automaticamente define qual robô abrir, abre o Chrome invisível, faz o Scraping em tempo real, trata casos de erros, salva a nova extração no banco e retorna um DTO higienizado.
-
-- **Terminal (cURL)**:
-  ```powershell
-  curl -X POST "http://localhost:5136/processos/coletar" -H "accept: application/json" -H "Content-Type: application/json" -d "[ \"1033404-26.2024.8.26.0053\", \"e-SAJ\" ]"
-  ```
-
-## 🛡️ Tratamento de Bloqueios (PJE/TJSP)
-O método de Scraping optou por evitar requisições HTTP nuas que levam a banimentos IP e bloqueios Cloudflare. Usamos `PuppeteerSharp` com tempos de espera configuráveis e injeção por teclado humano (`TypeAsync`), driblando heurísticas simples de Anti-Bot.
+## 10. Extensões futuras
+- Mapear demais TRTs no `ScraperFactory` usando as urls de `https://jte.csjt.jus.br/api/tribunais-integrados`.
+- Expor POST de coleta sob demanda (CNJ -> ScraperFactory -> persistência) se solicitado.

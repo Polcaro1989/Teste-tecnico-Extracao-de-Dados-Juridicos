@@ -9,4 +9,5 @@ public interface IProcessoRepository
     Task<IEnumerable<Processo>> GetAllAsync();
     Task<Processo?> GetByNumeroAsync(string numeroProcesso);
     Task AddOrUpdateProcessoAsync(Processo processo);
+    Task ClearAllAsync();
 }

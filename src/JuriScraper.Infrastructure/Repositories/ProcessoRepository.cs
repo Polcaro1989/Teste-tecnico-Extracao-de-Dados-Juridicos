@@ -62,4 +62,11 @@ public class ProcessoRepository : IProcessoRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task ClearAllAsync()
+    {
+        _context.PartesProcesso.RemoveRange(_context.PartesProcesso);
+        _context.Processos.RemoveRange(_context.Processos);
+        await _context.SaveChangesAsync();
+    }
 }
